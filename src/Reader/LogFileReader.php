@@ -16,7 +16,7 @@
 
 namespace BrowscapHelper\Source\Reader;
 
-use BrowscapHelper\Helper\Regex;
+use BrowscapHelper\Source\Helper\Regex;
 use FileLoader\Loader;
 use Symfony\Component\Console\Output\OutputInterface;
 

@@ -15,7 +15,6 @@ env:
 
 matrix:
   allow_failures:
-  # may fail due a segmentation fault
     - php: nightly
     - env: PREFER_LOWEST="--prefer-lowest"
 
