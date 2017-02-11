@@ -30,7 +30,7 @@ class LogFileSource implements SourceInterface
     private $output = null;
 
     /**
-     * @var null
+     * @var \Psr\Log\LoggerInterface
      */
     private $logger = null;
 
