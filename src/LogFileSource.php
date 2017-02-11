@@ -4,8 +4,13 @@ namespace BrowscapHelper\Source;
 
 use BrowscapHelper\Source\Helper\FilePath;
 use BrowscapHelper\Source\Reader\LogFileReader;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use UaResult\Browser\Browser;
+use UaResult\Device\Device;
+use UaResult\Engine\Engine;
+use UaResult\Os\Os;
+use Wurfl\Request\GenericRequestFactory;
 
 /**
  * Class DirectorySource
@@ -20,26 +25,38 @@ class LogFileSource implements SourceInterface
     private $sourcesDirectory = null;
 
     /**
-     * @param string $sourcesDirectory
+     * @var \Symfony\Component\Console\Output\OutputInterface
      */
-    public function __construct($sourcesDirectory)
+    private $output = null;
+
+    /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    private $logger = null;
+
+    /**
+     * @param \Psr\Log\LoggerInterface                          $logger
+     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * @param string                                            $sourcesDirectory
+     */
+    public function __construct(LoggerInterface $logger, OutputInterface $output, $sourcesDirectory)
     {
+        $this->logger           = $logger;
+        $this->output           = $output;
         $this->sourcesDirectory = $sourcesDirectory;
     }
 
     /**
-     * @param \Monolog\Logger                                   $logger
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
-     * @param int                                               $limit
+     * @param int $limit
      *
-     * @return \Generator
+     * @return string[]
      */
-    public function getUserAgents(Logger $logger, OutputInterface $output, $limit = 0)
+    public function getUserAgents($limit = 0)
     {
         $counter   = 0;
         $allAgents = [];
 
-        foreach ($this->getAgents($output) as $agent) {
+        foreach ($this->getAgents() as $agent) {
             if ($limit && $counter >= $limit) {
                 return;
             }
@@ -59,16 +76,13 @@ class LogFileSource implements SourceInterface
     }
 
     /**
-     * @param \Monolog\Logger                                   $logger
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
-     *
-     * @return \Generator
+     * @return \UaResult\Result\Result[]
      */
-    public function getTests(Logger $logger, OutputInterface $output)
+    public function getTests()
     {
         $allTests = [];
 
-        foreach ($this->getAgents($output) as $agent) {
+        foreach ($this->getAgents() as $agent) {
             if (empty($agent)) {
                 continue;
             }
@@ -77,45 +91,21 @@ class LogFileSource implements SourceInterface
                 continue;
             }
 
-            $test = [
-                'ua'         => $agent,
-                'properties' => [
-                    'Browser_Name'            => null,
-                    'Browser_Type'            => null,
-                    'Browser_Bits'            => null,
-                    'Browser_Maker'           => null,
-                    'Browser_Modus'           => null,
-                    'Browser_Version'         => null,
-                    'Platform_Codename'       => null,
-                    'Platform_Marketingname'  => null,
-                    'Platform_Version'        => null,
-                    'Platform_Bits'           => null,
-                    'Platform_Maker'          => null,
-                    'Platform_Brand_Name'     => null,
-                    'Device_Name'             => null,
-                    'Device_Maker'            => null,
-                    'Device_Type'             => null,
-                    'Device_Pointing_Method'  => null,
-                    'Device_Dual_Orientation' => null,
-                    'Device_Code_Name'        => null,
-                    'Device_Brand_Name'       => null,
-                    'RenderingEngine_Name'    => null,
-                    'RenderingEngine_Version' => null,
-                    'RenderingEngine_Maker'   => null,
-                ],
-            ];
+            $request  = (new GenericRequestFactory())->createRequestForUserAgent($agent);
+            $browser  = new Browser(null);
+            $device   = new Device(null, null);
+            $platform = new Os(null, null);
+            $engine   = new Engine(null);
 
-            yield [$agent => $test];
+            yield $agent => new Result($request, $device, $platform, $browser, $engine);
             $allTests[$agent] = 1;
         }
     }
 
     /**
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
-     *
-     * @return \Generator
+     * @return array
      */
-    private function loadFromPath(OutputInterface $output = null)
+    private function loadFromPath()
     {
         $files          = scandir($this->sourcesDirectory, SCANDIR_SORT_ASCENDING);
         $filepathHelper = new FilePath();
@@ -127,8 +117,10 @@ class LogFileSource implements SourceInterface
 
             ++$fileCounter;
 
+            $this->output->write('    reading file ' . $file->getPathname(), false);
+
             if (!$file->isFile() || !$file->isReadable()) {
-                $output->writeln(' - skipped');
+                $this->output->writeln(' - skipped');
 
                 continue;
             }
@@ -136,27 +128,27 @@ class LogFileSource implements SourceInterface
             $excludedExtensions = ['filepart', 'sql', 'rename', 'txt', 'zip', 'rar', 'php', 'gitkeep'];
 
             if (in_array($file->getExtension(), $excludedExtensions)) {
-                $output->writeln(' - skipped');
+                $this->output->writeln(' - skipped');
 
                 continue;
             }
 
             if (null === ($filepath = $filepathHelper->getPath($file))) {
-                $output->writeln(' - skipped');
+                $this->output->writeln(' - skipped');
 
                 continue;
             }
+
+            $this->output->writeln('');
 
             yield $filepath;
         }
     }
 
     /**
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
-     *
-     * @return \Generator
+     * @return string[]
      */
-    private function getAgents(OutputInterface $output = null)
+    private function getAgents()
     {
         $reader = new LogFileReader();
 
@@ -164,10 +156,10 @@ class LogFileSource implements SourceInterface
          * loading files
          ******************************************************************************/
 
-        foreach ($this->loadFromPath($output) as $filepath) {
+        foreach ($this->loadFromPath() as $filepath) {
             $reader->setLocalFile($filepath);
 
-            foreach ($reader->getAgents($output) as $agentOfLine) {
+            foreach ($reader->getAgents($this->output) as $agentOfLine) {
                 yield $agentOfLine;
             }
         }
