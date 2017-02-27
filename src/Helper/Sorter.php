@@ -1,25 +1,21 @@
 <?php
 /**
- * Copyright (c) 1998-2014 Browser Capabilities Project
+ * This file is part of the browscap-helper-source-logfile package.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * Copyright (c) 2016-2017, Thomas Mueller <mimmi20@live.de>
  *
- * Refer to the LICENSE file distributed with this package.
- *
- * @category   Browscap
- * @copyright  1998-2014 Browser Capabilities Project
- * @license    MIT
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
+declare(strict_types = 1);
 namespace BrowscapHelper\Source\Helper;
 
 /**
  * Class DiffCommand
  *
  * @category   Browscap
+ *
  * @author     James Titcumb <james@asgrim.com>
  */
 class Sorter
