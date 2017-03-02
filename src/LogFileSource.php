@@ -14,7 +14,7 @@ namespace BrowscapHelper\Source;
 use BrowscapHelper\Source\Helper\FilePath;
 use BrowscapHelper\Source\Reader\LogFileReader;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Finder\Finder;
 use UaResult\Browser\Browser;
 use UaResult\Device\Device;
 use UaResult\Engine\Engine;
@@ -35,24 +35,17 @@ class LogFileSource implements SourceInterface
     private $sourcesDirectory = null;
 
     /**
-     * @var \Symfony\Component\Console\Output\OutputInterface
-     */
-    private $output = null;
-
-    /**
      * @var \Psr\Log\LoggerInterface
      */
     private $logger = null;
 
     /**
-     * @param \Psr\Log\LoggerInterface                          $logger
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
-     * @param string                                            $sourcesDirectory
+     * @param \Psr\Log\LoggerInterface $logger
+     * @param string                   $sourcesDirectory
      */
-    public function __construct(LoggerInterface $logger, OutputInterface $output, $sourcesDirectory)
+    public function __construct(LoggerInterface $logger, $sourcesDirectory)
     {
         $this->logger           = $logger;
-        $this->output           = $output;
         $this->sourcesDirectory = $sourcesDirectory;
     }
 
@@ -117,39 +110,37 @@ class LogFileSource implements SourceInterface
      */
     private function loadFromPath()
     {
-        $files          = scandir($this->sourcesDirectory, SCANDIR_SORT_ASCENDING);
+        $finder   = new Finder();
+        $finder->files();
+        $finder->name('*.php');
+        $finder->ignoreDotFiles(true);
+        $finder->ignoreVCS(true);
+        $finder->sortByName();
+        $finder->ignoreUnreadableDirs();
+        $finder->in($this->sourcesDirectory);
+
         $filepathHelper = new FilePath();
         $fileCounter    = 0;
 
-        foreach ($files as $filename) {
-            /** @var $file \SplFileInfo */
-            $file = new \SplFileInfo($this->sourcesDirectory . $filename);
-
+        foreach ($finder as $file) {
+            /** @var \Symfony\Component\Finder\SplFileInfo $file */
             ++$fileCounter;
 
-            $this->output->write('    reading file ' . $file->getPathname(), false);
+            $this->logger->info('    reading file ' . $file->getPathname(), false);
 
             if (!$file->isFile() || !$file->isReadable()) {
-                $this->output->writeln(' - skipped');
-
                 continue;
             }
 
             $excludedExtensions = ['filepart', 'sql', 'rename', 'txt', 'zip', 'rar', 'php', 'gitkeep'];
 
             if (in_array($file->getExtension(), $excludedExtensions)) {
-                $this->output->writeln(' - skipped');
-
                 continue;
             }
 
             if (null === ($filepath = $filepathHelper->getPath($file))) {
-                $this->output->writeln(' - skipped');
-
                 continue;
             }
-
-            $this->output->writeln('');
 
             yield $filepath;
         }
@@ -167,10 +158,12 @@ class LogFileSource implements SourceInterface
          ******************************************************************************/
 
         foreach ($this->loadFromPath() as $filepath) {
+            $this->logger->info('    reading file ' . str_pad($filepath, 100, ' ', STR_PAD_RIGHT));
+
             $reader->setLocalFile($filepath);
 
-            foreach ($reader->getAgents($this->output) as $agentOfLine) {
-                yield $agentOfLine;
+            foreach ($reader->getAgents($this->logger) as $agentOfLine) {
+                yield trim($agentOfLine);
             }
         }
     }

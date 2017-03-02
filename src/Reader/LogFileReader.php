@@ -13,7 +13,7 @@ namespace BrowscapHelper\Source\Reader;
 
 use BrowscapHelper\Source\Helper\Regex;
 use FileLoader\Loader;
-use Symfony\Component\Console\Output\OutputInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class DiffCommand
@@ -43,11 +43,11 @@ class LogFileReader implements ReaderInterface
     }
 
     /**
-     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * @param \Psr\Log\LoggerInterface $logger
      *
      * @return \Generator
      */
-    public function getAgents(OutputInterface $output = null)
+    public function getAgents(LoggerInterface $logger = null)
     {
         /** @var \GuzzleHttp\Psr7\Response $response */
         $response = $this->loader->load();
@@ -70,7 +70,7 @@ class LogFileReader implements ReaderInterface
             $lineMatches = [];
 
             if (!preg_match($regex, $line, $lineMatches)) {
-                $output->writeln('no useragent found in line "' . $line . '"');
+                $logger->warning('no useragent found in line "' . $line . '"');
                 continue;
             }
 
@@ -84,7 +84,7 @@ class LogFileReader implements ReaderInterface
                 continue;
             }
 
-            yield trim($agentOfLine);
+            yield $agentOfLine;
         }
     }
 
