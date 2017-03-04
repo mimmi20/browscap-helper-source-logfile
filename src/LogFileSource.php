@@ -123,7 +123,7 @@ class LogFileSource implements SourceInterface
         $fileCounter    = 0;
 
         foreach ($finder as $file) {
-            /** @var \Symfony\Component\Finder\SplFileInfo $file */
+            /* @var \Symfony\Component\Finder\SplFileInfo $file */
             ++$fileCounter;
 
             $this->logger->info('    reading file ' . $file->getPathname(), false);
