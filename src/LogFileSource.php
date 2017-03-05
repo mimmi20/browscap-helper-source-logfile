@@ -126,7 +126,7 @@ class LogFileSource implements SourceInterface
             /* @var \Symfony\Component\Finder\SplFileInfo $file */
             ++$fileCounter;
 
-            $this->logger->info('    reading file ' . $file->getPathname(), false);
+            $this->logger->info('    reading file ' . $file->getPathname());
 
             if (!$file->isFile() || !$file->isReadable()) {
                 continue;
