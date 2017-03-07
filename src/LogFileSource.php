@@ -112,7 +112,6 @@ class LogFileSource implements SourceInterface
     {
         $finder   = new Finder();
         $finder->files();
-        $finder->name('*.php');
         $finder->ignoreDotFiles(true);
         $finder->ignoreVCS(true);
         $finder->sortByName();
