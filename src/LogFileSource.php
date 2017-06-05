@@ -110,7 +110,7 @@ class LogFileSource implements SourceInterface
      */
     private function loadFromPath()
     {
-        $finder   = new Finder();
+        $finder = new Finder();
         $finder->files();
         $finder->ignoreDotFiles(true);
         $finder->ignoreVCS(true);
