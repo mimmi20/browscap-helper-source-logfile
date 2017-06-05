@@ -58,7 +58,7 @@ class LogFileReader implements ReaderInterface
         $stream->read(1);
         $stream->rewind();
 
-        $regex  = (new Regex())->getRegex();
+        $regex = (new Regex())->getRegex();
 
         while (!$stream->eof()) {
             $line = $stream->read(8192);
